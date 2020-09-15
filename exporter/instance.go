@@ -20,7 +20,7 @@ type EC2Instance struct {
 }
 
 // CollectInstanceMetrics scrapes the AWS EC2 API for Instance details and writes the metric data to Prometheus
-func (exporter *Exporter) CollectInstanceMetrics() {
+func (exporter *Exporter) CollectInstanceMetrics() (error) {
 	var client *ec2.EC2
 	if exporter.Config.AWS.RoleARN != "" {
 		creds := stscreds.NewCredentials(exporter.Session, exporter.Config.AWS.RoleARN)
@@ -36,16 +36,20 @@ func (exporter *Exporter) CollectInstanceMetrics() {
 		region:  exporter.Config.AWS.Region,
 	}
 
-	ec2i.getInstanceUsage()
+	if err := ec2i.getInstanceUsage(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (ec2i *EC2Instance) getInstanceUsage() {
+func (ec2i *EC2Instance) getInstanceUsage() (error) {
 	var totalCoreCount int64
 
 	instances, err := ec2i.client.DescribeInstances((&ec2.DescribeInstancesInput{}))
 	if err != nil {
 		ec2i.logger.Errorf("Error occurred while retreiving instance data: %s", err)
-		return
+		return err
 	}
 
 	for _, reservation := range instances.Reservations {
@@ -62,4 +66,6 @@ func (ec2i *EC2Instance) getInstanceUsage() {
 	ec2i.metrics.GetOrCreateGauge(totalCoreMetric, func() float64 {
 		return float64(totalCoreCount)
 	})
+
+	return nil
 }

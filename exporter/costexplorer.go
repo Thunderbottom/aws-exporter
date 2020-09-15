@@ -21,7 +21,7 @@ type CostExplorer struct {
 }
 
 // CollectCostMetrics scrapes the AWS Cost Explorer API and writes the metric data to Prometheus
-func (exporter *Exporter) CollectCostMetrics() {
+func (exporter *Exporter) CollectCostMetrics() (error) {
 	var client *costexplorer.CostExplorer
 	if exporter.Config.AWS.RoleARN != "" {
 		creds := stscreds.NewCredentials(exporter.Session, exporter.Config.AWS.RoleARN)
@@ -36,12 +36,20 @@ func (exporter *Exporter) CollectCostMetrics() {
 		metrics: exporter.Metrics,
 	}
 
-	ce.getCostAndUsage()
-	ce.getYearlyCostForecast()
-	ce.getReservationMetrics()
+	if err := ce.getCostAndUsage(); err != nil {
+		return err
+	}
+	if err := ce.getYearlyCostForecast(); err != nil {
+		return err
+	}
+	if err := ce.getReservationMetrics(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (ce *CostExplorer) getCostAndUsage() {
+func (ce *CostExplorer) getCostAndUsage() (error) {
 	costUsage, err := ce.client.GetCostAndUsage((&costexplorer.GetCostAndUsageInput{
 		Metrics: []*string{aws.String("BlendedCost")},
 		TimePeriod:  getInterval(-1, 0),
@@ -56,23 +64,25 @@ func (ce *CostExplorer) getCostAndUsage() {
 
 	if err != nil {
 		ce.logger.Errorf("Error occurred while retrieving cost and usage data: %s", err)
-		return
+		return err
 	}
 
 	for _, cost := range costUsage.ResultsByTime[0].Groups {
 		amount, err := strconv.ParseFloat(*cost.Metrics["BlendedCost"].Amount, 64)
 		if err != nil {
 			ce.logger.Errorf("Error occurred while parsing cost and usage data for key %s:\n%s", *cost.Keys[0], err)
-			return
+			return err
 		}
 		costMetric := fmt.Sprintf(`ce_cost_by_service{service="%s"}`, *cost.Keys[0])
 		ce.metrics.GetOrCreateGauge(costMetric, func() float64 {
 			return amount
 		})
 	}
+
+	return nil
 }
 
-func (ce *CostExplorer) getYearlyCostForecast() {
+func (ce *CostExplorer) getYearlyCostForecast() error {
 	costForecast, err := ce.client.GetCostForecast((&costexplorer.GetCostForecastInput{
 		Metric: aws.String("BLENDED_COST"),
 		TimePeriod: getInterval(0, 365),
@@ -81,17 +91,19 @@ func (ce *CostExplorer) getYearlyCostForecast() {
 
 	if err != nil {
 		ce.logger.Errorf("Error occurred while retrieving yearly cost forecast: %s", err)
+		return err
 	}
 
 	for _, forecast := range costForecast.ForecastResultsByTime {
 		amount, err := strconv.ParseFloat(*forecast.MeanValue, 64)
 		if err != nil {
 			ce.logger.Errorf("Error occurred while parsing yearly cost forecast for period: %s:\n%s", *forecast.TimePeriod.Start, err)
-			return
+			return err
 		}
 		forecastDate, err := time.Parse("2006-01-02", *forecast.TimePeriod.Start)
 		if err != nil {
 			ce.logger.Errorf("Error occurred while parsing forecast month: %s", err)
+			return err
 		}
 		forecastMetric := fmt.Sprintf(`ce_forecast_by_month{month="%s"}`, forecastDate.Month())
 		ce.metrics.GetOrCreateGauge(forecastMetric, func() float64 {
@@ -107,9 +119,11 @@ func (ce *CostExplorer) getYearlyCostForecast() {
 		}
 		return total
 	})
+
+	return nil
 }
 
-func (ce *CostExplorer) getReservationMetrics() {
+func (ce *CostExplorer) getReservationMetrics() (error) {
 	reservationCoverage, err := ce.client.GetReservationCoverage(&costexplorer.GetReservationCoverageInput{
 		Granularity: aws.String("MONTHLY"),
 		TimePeriod: getInterval(-time.Now().YearDay(), 0),
@@ -117,7 +131,7 @@ func (ce *CostExplorer) getReservationMetrics() {
 
 	if err != nil {
 		ce.logger.Errorf("Error occurred while retrieving reservation coverage: %s", err)
-		return
+		return err
 	}
 
 	totalReservationHours := reservationCoverage.Total.CoverageHours
@@ -162,7 +176,7 @@ func (ce *CostExplorer) getReservationMetrics() {
 
 	if err != nil {
 		ce.logger.Errorf("Error occurred while retrieving reservation utilization: %s", err)
-		return
+		return err
 	}
 
 	ce.metrics.GetOrCreateGauge(`ce_reserved_utilization_percent`, func() float64 {
@@ -173,6 +187,8 @@ func (ce *CostExplorer) getReservationMetrics() {
 		}
 		return total
 	})
+
+	return nil
 }
 
 func getInterval(start int, end int) *costexplorer.DateInterval {

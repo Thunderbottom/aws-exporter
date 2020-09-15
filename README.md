@@ -12,6 +12,29 @@ If you want to scrape data from across AWS Accounts, you will also need to set `
 
 The `region` needs to be set to the AWS region for which the data needs to be fetched.
 
+### Required IAM Permissions
+
+For the exporter to work, your IAM User/Role needs to have the following IAM Permissions attached:
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": [
+              "ce:GetCostForecast",
+              "ce:GetCostAndUsage",
+              "ce:GetReservationCoverage",
+              "ec2:DescribeInstances"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+```
+
 ## Installation
 
 ### Compiling the Binary
@@ -60,7 +83,7 @@ Extending the functionality of this exporter is easy. Add the exporter under the
 
 ## Contributions
 
-PRs for Feature Requests, bug fixes are welcome. Feel free to open an issue for bugs and discussions on the exporter functionality.
+PRs for feature requests, bug fixes are welcome. Feel free to open an issue for bugs and discussions on the exporter functionality.
 
 ## License
 
