@@ -16,6 +16,7 @@ import (
 // to fetch data from AWS Cost Explorer
 type CostExplorer struct {
 	client  *costexplorer.CostExplorer
+	job     string
 	logger  *logrus.Logger
 	metrics *metrics.Set
 }
@@ -23,16 +24,17 @@ type CostExplorer struct {
 // CollectCostMetrics scrapes the AWS Cost Explorer API and writes the metric data to Prometheus
 func (exporter *Exporter) CollectCostMetrics() (error) {
 	var client *costexplorer.CostExplorer
-	if exporter.Config.AWS.RoleARN != "" {
-		creds := stscreds.NewCredentials(exporter.Session, exporter.Config.AWS.RoleARN)
+	if exporter.Job.AWS.RoleARN != "" {
+		creds := stscreds.NewCredentials(exporter.Session, exporter.Job.AWS.RoleARN)
 		client = costexplorer.New(exporter.Session, &aws.Config{Credentials: creds})
 	} else {
 		client = costexplorer.New(exporter.Session)
 	}
 
 	ce := &CostExplorer{
-		client: client,
-		logger: exporter.Logger,
+		client:  client,
+		job:     exporter.Job.Name,
+		logger:  exporter.Logger,
 		metrics: exporter.Metrics,
 	}
 
@@ -73,7 +75,7 @@ func (ce *CostExplorer) getCostAndUsage() (error) {
 			ce.logger.Errorf("Error occurred while parsing cost and usage data for key %s:\n%s", *cost.Keys[0], err)
 			return err
 		}
-		costMetric := fmt.Sprintf(`ce_cost_by_service{service="%s"}`, *cost.Keys[0])
+		costMetric := fmt.Sprintf(`ce_cost_by_service{job="%s",service="%s"}`, ce.job, *cost.Keys[0])
 		ce.metrics.GetOrCreateGauge(costMetric, func() float64 {
 			return amount
 		})
@@ -105,13 +107,14 @@ func (ce *CostExplorer) getYearlyCostForecast() error {
 			ce.logger.Errorf("Error occurred while parsing forecast month: %s", err)
 			return err
 		}
-		forecastMetric := fmt.Sprintf(`ce_forecast_by_month{month="%s"}`, forecastDate.Month())
+		forecastMetric := fmt.Sprintf(`ce_forecast_by_month{job="%s",month="%s"}`, ce.job, forecastDate.Month())
 		ce.metrics.GetOrCreateGauge(forecastMetric, func() float64 {
 			return amount
 		})
 	}
 
-	ce.metrics.GetOrCreateGauge(`ce_forecast_yearly`, func() float64 {
+	yearlyForecastMetric := fmt.Sprintf(`ce_forecast_yearly{job="%s"}`, ce.job)
+	ce.metrics.GetOrCreateGauge(yearlyForecastMetric, func() float64 {
 		total, err := strconv.ParseFloat(*costForecast.Total.Amount, 64)
 		if err != nil {
 			ce.logger.Errorf("Error occurred while parsing total cost forecast:\n%s", err)
@@ -136,7 +139,8 @@ func (ce *CostExplorer) getReservationMetrics() (error) {
 
 	totalReservationHours := reservationCoverage.Total.CoverageHours
 
-	ce.metrics.GetOrCreateGauge(`ce_coverage_hours_percent`, func() float64 {
+	coverageHourPerc := fmt.Sprintf(`ce_coverage_hours_percent{job="%s"}`, ce.job)
+	ce.metrics.GetOrCreateGauge(coverageHourPerc, func() float64 {
 		total, err := strconv.ParseFloat(*totalReservationHours.CoverageHoursPercentage, 64)
 		if err != nil {
 			ce.logger.Errorf("Error occurred while parsing coverage hours percentage: %s", err)
@@ -144,7 +148,8 @@ func (ce *CostExplorer) getReservationMetrics() (error) {
 		}
 		return total
 	})
-	ce.metrics.GetOrCreateGauge(`ce_coverage_ondemand_hours`, func() float64 {
+	coverageOndemandHr := fmt.Sprintf(`ce_coverage_ondemand_hours{job="%s"}`, ce.job)
+	ce.metrics.GetOrCreateGauge(coverageOndemandHr, func() float64 {
 		total, err := strconv.ParseFloat(*totalReservationHours.OnDemandHours, 64)
 		if err != nil {
 			ce.logger.Errorf("Error occurred while parsing coverage ondemand hours: %s", err)
@@ -152,7 +157,8 @@ func (ce *CostExplorer) getReservationMetrics() (error) {
 		}
 		return total
 	})
-	ce.metrics.GetOrCreateGauge(`ce_coverage_reserved_hours`, func() float64 {
+	coverageReservedHr := fmt.Sprintf(`ce_coverage_reserved_hours{job="%s"}`, ce.job)
+	ce.metrics.GetOrCreateGauge(coverageReservedHr, func() float64 {
 		total, err := strconv.ParseFloat(*totalReservationHours.ReservedHours, 64)
 		if err != nil {
 			ce.logger.Errorf("Error occurred while parsing total reservation hours: %s", err)
@@ -160,7 +166,8 @@ func (ce *CostExplorer) getReservationMetrics() (error) {
 		}
 		return total
 	})
-	ce.metrics.GetOrCreateGauge(`ce_coverage_total_running_hours`, func() float64 {
+	coverageTotalHr := fmt.Sprintf(`ce_coverage_total_running_hours{job="%s"}`, ce.job)
+	ce.metrics.GetOrCreateGauge(coverageTotalHr, func() float64 {
 		total, err := strconv.ParseFloat(*totalReservationHours.TotalRunningHours, 64)
 		if err != nil {
 			ce.logger.Errorf("Error occurred while parsing coverage total hours: %s", err)
@@ -179,7 +186,8 @@ func (ce *CostExplorer) getReservationMetrics() (error) {
 		return err
 	}
 
-	ce.metrics.GetOrCreateGauge(`ce_reserved_utilization_percent`, func() float64 {
+	reservationUtil := fmt.Sprintf(`ce_reserved_utilization_percent{job="%s"}`, ce.job)
+	ce.metrics.GetOrCreateGauge(reservationUtil, func() float64 {
 		total, err := strconv.ParseFloat(*reservationUtilization.Total.UtilizationPercentage, 64)
 		if err != nil {
 			ce.logger.Errorf("Error occurred while parsing reserved utilization percent: %s", err)

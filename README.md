@@ -35,6 +35,27 @@ For the exporter to work, your IAM User/Role needs to have the following IAM Per
 }
 ```
 
+### Configuration
+
+`aws-exporter` supports exporting data from multiple AWS accounts. For this, you need to create an entry for the account inside `config.toml`:
+
+```toml
+[[jobs]]
+name = ""
+[jobs.aws]
+access_key = ""
+secret_key = ""
+region     = "ap-south-1"
+role_arn   = ""
+[jobs.filters]
+name  = ""
+value = ""
+```
+
+`[jobs.aws]` holds the credentials for the AWS account, and can be added per job. If no `access_key` and `secret_key` is specified, the exporter uses the default credentials configured by `awscli`.
+
+`[jobs.filters]` contains the filter tags to be applied for fetching EC2 Instance details. The `name` of the tag needs to be in the format `tag:tag-name`.
+
 ## Installation
 
 ### Compiling the Binary

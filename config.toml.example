@@ -1,9 +1,14 @@
-[aws]
-access_key = ""
-secret_key = ""
-region     = "ap-south-1"
-
 [server]
 address       = ":9980"
 read_timeout  = 8000
 write_timeout = 8000
+
+[[jobs]]
+name = "job"
+[jobs.aws]
+access_key = ""
+secret_key = ""
+region     = "ap-south-1"
+[jobs.filters]
+name  = "tag:tagname"
+value = "tagvalue"

@@ -1,4 +1,4 @@
-module github.com/thunderbottom/aws-cost-exporter
+module github.com/thunderbottom/aws-exporter
 
 go 1.14
 

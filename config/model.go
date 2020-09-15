@@ -6,8 +6,15 @@ import (
 
 // Config is a structure that holds the loaded configuration file
 type Config struct {
-	AWS    awsCredentials `koanf:"aws"`
+	Jobs   []Job          `koanf:"jobs"`
 	Server server         `koanf:"server"`
+}
+
+// Job is a structure that holds configuration for aws accounts
+type Job struct {
+	Name    string         `koanf:"name"`
+	AWS     awsCredentials `koanf:"aws"`
+	Filters []filters      `koanf:"filters"`
 }
 
 type awsCredentials struct {
@@ -15,6 +22,11 @@ type awsCredentials struct {
 	SecretKey string `koanf:"secret_key"`
 	Region    string `koanf:"region"`
 	RoleARN   string `koanf:"role_arn"`
+}
+
+type filters struct {
+	Name  string `koanf:"name"`
+	Value string `koanf:"value"`
 }
 
 type server struct {
