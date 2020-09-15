@@ -27,6 +27,7 @@ For the exporter to work, your IAM User/Role needs to have the following IAM Per
               "ce:GetCostForecast",
               "ce:GetCostAndUsage",
               "ce:GetReservationCoverage",
+              "ce:GetReservationUtilization",
               "ec2:DescribeInstances"
             ],
             "Resource": "*"
