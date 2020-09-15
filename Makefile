@@ -3,11 +3,14 @@
 BIN := aws-exporter
 
 build:
-	go build -o ${BIN}
+	go build -o ${BIN} -ldflags="-s -w"
 
 clean:
 	go clean
 	- rm -f ${BIN}
+
+dist:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(MAKE) build
 
 fresh: clean build run
 
