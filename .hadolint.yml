@@ -1,0 +1,6 @@
+---
+ignored:
+  - "DL3018" # ignore package pinning apk (alpine)
+
+trustedRegistries:
+  - "docker.io"

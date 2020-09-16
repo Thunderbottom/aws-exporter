@@ -1,0 +1,22 @@
+kind: pipeline
+name: default
+
+steps:
+- name: lint
+  image: hadolint/hadolint:latest-alpine
+  commands:
+    - set -- `find -type f -name "Dockerfile"`
+    - hadolint --config .hadolint.yml "$@"
+
+- name: docker
+  image: plugins/docker
+  settings:
+    username:
+      from_secret: docker_username
+    password:
+      from_secret: docker_password
+    dockerfile: docker/Dockerfile
+    repo: thunderbottom/aws-exporter
+    tags: latest
+  when:
+    status: [ success ]
