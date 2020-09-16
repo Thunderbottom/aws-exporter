@@ -12,7 +12,7 @@ WORKDIR /build
 
 COPY . .
 
-RUN apk add --update make ca-certificates
+RUN apk add --no-cache make ca-certificates
 RUN make dist
 
 FROM scratch
