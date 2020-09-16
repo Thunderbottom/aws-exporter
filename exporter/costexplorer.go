@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"golang.org/x/sync/errgroup"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/service/costexplorer"
@@ -23,35 +24,21 @@ type CostExplorer struct {
 
 // CollectCostMetrics scrapes the AWS Cost Explorer API and writes the metric data to Prometheus
 func (exporter *Exporter) CollectCostMetrics() (error) {
-	var client *costexplorer.CostExplorer
-	if exporter.Job.AWS.RoleARN != "" {
-		creds := stscreds.NewCredentials(exporter.Session, exporter.Job.AWS.RoleARN)
-		client = costexplorer.New(exporter.Session, &aws.Config{Credentials: creds})
-	} else {
-		client = costexplorer.New(exporter.Session)
-	}
+	ce := exporter.getCEExporter()
 
-	ce := &CostExplorer{
-		client:  client,
-		job:     exporter.Job.Name,
-		logger:  exporter.Logger,
-		metrics: exporter.Metrics,
-	}
+	var g errgroup.Group
+	g.Go(ce.getCostAndUsage)
+	g.Go(ce.getYearlyCostForecast)
+	g.Go(ce.getReservationMetrics)
 
-	if err := ce.getCostAndUsage(); err != nil {
-		return err
-	}
-	if err := ce.getYearlyCostForecast(); err != nil {
-		return err
-	}
-	if err := ce.getReservationMetrics(); err != nil {
+	if err := g.Wait(); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (ce *CostExplorer) getCostAndUsage() (error) {
+func (ce *CostExplorer) getCostAndUsage() error {
 	costUsage, err := ce.client.GetCostAndUsage((&costexplorer.GetCostAndUsageInput{
 		Metrics: []*string{aws.String("BlendedCost")},
 		TimePeriod:  getInterval(-1, 0),
@@ -208,4 +195,23 @@ func getInterval(start int, end int) *costexplorer.DateInterval {
 	dateInterval.SetEnd(endDate.Format("2006-01-02"))
 
 	return &dateInterval
+}
+
+func (exporter *Exporter) getCEExporter() (*CostExplorer) {
+	var client *costexplorer.CostExplorer
+	if exporter.Job.AWS.RoleARN != "" {
+		creds := stscreds.NewCredentials(exporter.Session, exporter.Job.AWS.RoleARN)
+		client = costexplorer.New(exporter.Session, &aws.Config{Credentials: creds})
+	} else {
+		client = costexplorer.New(exporter.Session)
+	}
+
+	ce := &CostExplorer{
+		client:  client,
+		job:     exporter.Job.Name,
+		logger:  exporter.Logger,
+		metrics: exporter.Metrics,
+	}
+
+	return ce
 }

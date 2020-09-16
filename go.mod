@@ -9,4 +9,5 @@ require (
 	github.com/knadh/koanf v0.12.0
 	github.com/sirupsen/logrus v1.6.0
 	golang.org/x/net v0.0.0-20200822124328-c89045814202 // indirect
+	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 )

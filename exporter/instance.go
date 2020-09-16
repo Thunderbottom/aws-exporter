@@ -3,6 +3,7 @@ package exporter
 import (
 	"fmt"
 
+	"golang.org/x/sync/errgroup"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -23,40 +24,17 @@ type EC2Instance struct {
 
 // CollectInstanceMetrics scrapes the AWS EC2 API for Instance details and writes the metric data to Prometheus
 func (exporter *Exporter) CollectInstanceMetrics() (error) {
-	var client *ec2.EC2
-	if exporter.Job.AWS.RoleARN != "" {
-		creds := stscreds.NewCredentials(exporter.Session, exporter.Job.AWS.RoleARN)
-		client = ec2.New(exporter.Session, &aws.Config{Credentials: creds})
-	} else {
-		client = ec2.New(exporter.Session)
-	}
+	ec2i := exporter.getEC2Exporter()
 
-	filters := make([]*ec2.Filter, 0, len(exporter.Job.Filters))
-	for _, tag := range exporter.Job.Filters {
-		if tag.Name != "" || tag.Value != "" {
-			filters = append(filters, &ec2.Filter{
-				Name:   aws.String(tag.Name),
-				Values: []*string{aws.String(tag.Value)},
-			})
-		}
-	}
+	var g errgroup.Group
+	g.Go(ec2i.getInstanceUsage)
 
-	ec2i := &EC2Instance{
-		client:  client,
-		filters: filters,
-		job:     exporter.Job.Name,
-		logger:  exporter.Logger,
-		metrics: exporter.Metrics,
-		region:  exporter.Job.AWS.Region,
-	}
-
-	if err := ec2i.getInstanceUsage(); err != nil {
+	if err := g.Wait(); err != nil {
 		return err
 	}
 
 	return nil
 }
-
 func (ec2i *EC2Instance) getInstanceUsage() (error) {
 	var totalCoreCount int64
 
@@ -88,4 +66,35 @@ func (ec2i *EC2Instance) getInstanceUsage() (error) {
 	})
 
 	return nil
+}
+
+func (exporter *Exporter) getEC2Exporter() (*EC2Instance) {
+	var client *ec2.EC2
+	if exporter.Job.AWS.RoleARN != "" {
+		creds := stscreds.NewCredentials(exporter.Session, exporter.Job.AWS.RoleARN)
+		client = ec2.New(exporter.Session, &aws.Config{Credentials: creds})
+	} else {
+		client = ec2.New(exporter.Session)
+	}
+
+	filters := make([]*ec2.Filter, 0, len(exporter.Job.Filters))
+	for _, tag := range exporter.Job.Filters {
+		if tag.Name != "" || tag.Value != "" {
+			filters = append(filters, &ec2.Filter{
+				Name:   aws.String(tag.Name),
+				Values: []*string{aws.String(tag.Value)},
+			})
+		}
+	}
+
+	ec2i := &EC2Instance{
+		client:  client,
+		filters: filters,
+		job:     exporter.Job.Name,
+		logger:  exporter.Logger,
+		metrics: exporter.Metrics,
+		region:  exporter.Job.AWS.Region,
+	}
+
+	return ec2i
 }
