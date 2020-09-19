@@ -11,10 +11,10 @@ import (
 
 // Exporter representst the structure for all app wide exporters and structs
 type Exporter struct {
-	Job         *config.Job
-	Logger      *logrus.Logger
-	Session     *session.Session
-	Metrics     *metrics.Set
+	Job     *config.Job
+	Logger  *logrus.Logger
+	Session *session.Session
+	Metrics *metrics.Set
 }
 
 // SetAWSSession is a method to create a new session for the AWS API
@@ -28,8 +28,7 @@ func (exporter *Exporter) SetAWSSession() {
 				exporter.Job.AWS.SecretKey,
 				"")
 	}
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
+	exporter.Session = session.Must(session.NewSessionWithOptions(session.Options{
 		Config: *config,
 	}))
-	exporter.Session = sess
 }

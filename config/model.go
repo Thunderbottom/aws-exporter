@@ -6,8 +6,8 @@ import (
 
 // Config is a structure that holds the loaded configuration file
 type Config struct {
-	Jobs   []Job          `koanf:"jobs"`
-	Server server         `koanf:"server"`
+	Jobs   []Job  `koanf:"jobs"`
+	Server server `koanf:"server"`
 }
 
 // Job is a structure that holds configuration for aws accounts

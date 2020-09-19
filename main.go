@@ -10,9 +10,9 @@ import (
 
 var (
 	// Cfg is an instance of Config containing the app configuration
-	Cfg         = config.GetConfig()
+	Cfg    = config.GetConfig()
 	// Logger is an instance of logrus.Logger to be used throughout the exporter
-	Logger      = getLogger()
+	Logger = getLogger()
 )
 
 func getLogger() *logrus.Logger {
