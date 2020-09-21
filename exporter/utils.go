@@ -13,8 +13,8 @@ import (
 type Exporter struct {
 	Job     *config.Job
 	Logger  *logrus.Logger
-	Session *session.Session
 	Metrics *metrics.Set
+	Session *session.Session
 }
 
 // SetAWSSession is a method to create a new session for the AWS API

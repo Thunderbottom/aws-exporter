@@ -2,16 +2,13 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"sync"
 
 	"golang.org/x/sync/errgroup"
 	"github.com/thunderbottom/aws-exporter/exporter"
 	"github.com/VictoriaMetrics/metrics"
-)
-
-var (
-	awsExporter = &exporter.Exporter{}
 )
 
 func defaultHandler(w http.ResponseWriter, r *http.Request) {
@@ -37,6 +34,7 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 			default:
 			}
 
+			awsExporter := &exporter.Exporter{}
 			awsExporter.Job = &job
 			awsExporter.Logger = Logger
 			awsExporter.SetAWSSession()
@@ -45,16 +43,20 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 			g.Go(awsExporter.CollectCostMetrics)
 			g.Go(awsExporter.CollectInstanceMetrics)
 
+			var status float64 = 1
+			exporterUp := fmt.Sprintf(`ce_up{job="%s"}`, awsExporter.Job.Name)
 			if err := g.Wait(); err != nil {
 				cancel()
+				awsExporter.Logger.Error(err)
+				status = 0
 			}
+			awsExporter.Metrics.GetOrCreateGauge(exporterUp, func() float64 {
+				return status
+			})
 		}()
 	}
 	wg.Wait()
 
-	if ctx.Err() != nil {
-		w.Write([]byte("An error has occurred, check logs for more information."))
-	} else {
-		metricSet.WritePrometheus(w)
-	}
+	metricSet.WritePrometheus(w)
+
 }
