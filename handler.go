@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"sync"
 
-	"golang.org/x/sync/errgroup"
-	"github.com/thunderbottom/aws-exporter/exporter"
 	"github.com/VictoriaMetrics/metrics"
+	"github.com/thunderbottom/aws-exporter/exporter"
+	"golang.org/x/sync/errgroup"
 )
 
 func defaultHandler(w http.ResponseWriter, r *http.Request) {

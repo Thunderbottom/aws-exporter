@@ -3,12 +3,12 @@ package exporter
 import (
 	"fmt"
 
-	"golang.org/x/sync/errgroup"
+	"github.com/VictoriaMetrics/metrics"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/sirupsen/logrus"
-	"github.com/VictoriaMetrics/metrics"
+	"golang.org/x/sync/errgroup"
 )
 
 // EC2Instance is a structure representing the functions required
@@ -23,7 +23,7 @@ type EC2Instance struct {
 }
 
 // CollectInstanceMetrics scrapes the AWS EC2 API for Instance details and writes the metric data to Prometheus
-func (exporter *Exporter) CollectInstanceMetrics() (error) {
+func (exporter *Exporter) CollectInstanceMetrics() error {
 	ec2i := exporter.getEC2Exporter()
 
 	var g errgroup.Group
@@ -35,7 +35,7 @@ func (exporter *Exporter) CollectInstanceMetrics() (error) {
 
 	return nil
 }
-func (ec2i *EC2Instance) getInstanceUsage() (error) {
+func (ec2i *EC2Instance) getInstanceUsage() error {
 	var totalCoreCount int64
 
 	input := &ec2.DescribeInstancesInput{}
@@ -68,7 +68,7 @@ func (ec2i *EC2Instance) getInstanceUsage() (error) {
 	return nil
 }
 
-func (exporter *Exporter) getEC2Exporter() (*EC2Instance) {
+func (exporter *Exporter) getEC2Exporter() *EC2Instance {
 	var client *ec2.EC2
 	if exporter.Job.AWS.RoleARN != "" {
 		creds := stscreds.NewCredentials(exporter.Session, exporter.Job.AWS.RoleARN)

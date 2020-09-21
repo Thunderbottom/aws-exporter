@@ -5,12 +5,12 @@ import (
 	"strconv"
 	"time"
 
-	"golang.org/x/sync/errgroup"
+	"github.com/VictoriaMetrics/metrics"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/service/costexplorer"
 	"github.com/sirupsen/logrus"
-	"github.com/VictoriaMetrics/metrics"
+	"golang.org/x/sync/errgroup"
 )
 
 // CostExplorer is a structure representing the functions required
@@ -23,7 +23,7 @@ type CostExplorer struct {
 }
 
 // CollectCostMetrics scrapes the AWS Cost Explorer API and writes the metric data to Prometheus
-func (exporter *Exporter) CollectCostMetrics() (error) {
+func (exporter *Exporter) CollectCostMetrics() error {
 	ce := exporter.getCEExporter()
 
 	var g errgroup.Group
@@ -40,7 +40,7 @@ func (exporter *Exporter) CollectCostMetrics() (error) {
 
 func (ce *CostExplorer) getCostAndUsage() error {
 	costUsage, err := ce.client.GetCostAndUsage((&costexplorer.GetCostAndUsageInput{
-		Metrics: []*string{aws.String("BlendedCost")},
+		Metrics:     []*string{aws.String("BlendedCost")},
 		TimePeriod:  getInterval(-1, 0),
 		Granularity: aws.String("DAILY"),
 		GroupBy: []*costexplorer.GroupDefinition{
@@ -73,8 +73,8 @@ func (ce *CostExplorer) getCostAndUsage() error {
 
 func (ce *CostExplorer) getYearlyCostForecast() error {
 	costForecast, err := ce.client.GetCostForecast((&costexplorer.GetCostForecastInput{
-		Metric: aws.String("BLENDED_COST"),
-		TimePeriod: getInterval(0, 365),
+		Metric:      aws.String("BLENDED_COST"),
+		TimePeriod:  getInterval(0, 365),
 		Granularity: aws.String("MONTHLY"),
 	}))
 
@@ -113,10 +113,10 @@ func (ce *CostExplorer) getYearlyCostForecast() error {
 	return nil
 }
 
-func (ce *CostExplorer) getReservationMetrics() (error) {
+func (ce *CostExplorer) getReservationMetrics() error {
 	reservationCoverage, err := ce.client.GetReservationCoverage(&costexplorer.GetReservationCoverageInput{
 		Granularity: aws.String("MONTHLY"),
-		TimePeriod: getInterval(-time.Now().YearDay(), 0),
+		TimePeriod:  getInterval(-time.Now().YearDay(), 0),
 	})
 
 	if err != nil {
@@ -165,7 +165,7 @@ func (ce *CostExplorer) getReservationMetrics() (error) {
 
 	reservationUtilization, err := ce.client.GetReservationUtilization(&costexplorer.GetReservationUtilizationInput{
 		Granularity: aws.String("MONTHLY"),
-		TimePeriod: getInterval(-time.Now().YearDay(), 0),
+		TimePeriod:  getInterval(-time.Now().YearDay(), 0),
 	})
 
 	if err != nil {
@@ -197,7 +197,7 @@ func getInterval(start int, end int) *costexplorer.DateInterval {
 	return &dateInterval
 }
 
-func (exporter *Exporter) getCEExporter() (*CostExplorer) {
+func (exporter *Exporter) getCEExporter() *CostExplorer {
 	var client *costexplorer.CostExplorer
 	if exporter.Job.AWS.RoleARN != "" {
 		creds := stscreds.NewCredentials(exporter.Session, exporter.Job.AWS.RoleARN)

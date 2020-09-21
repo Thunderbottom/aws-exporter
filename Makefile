@@ -15,6 +15,7 @@ dist:
 fresh: clean build run
 
 lint:
+	gofmt -s -w .
 	find . -name "*.go" -exec ${GOPATH}/bin/golint {} \;
 
 run:

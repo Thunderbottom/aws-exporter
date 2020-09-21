@@ -5,10 +5,10 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/jessevdk/go-flags"
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/providers/file"
-	"github.com/jessevdk/go-flags"
 )
 
 var opt options
