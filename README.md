@@ -51,11 +51,16 @@ role_arn   = ""
 [jobs.filters]
 name  = ""
 value = ""
+[jobs.exported_tags]
+tag          = "ec2-tagname"
+exported_tag = "ec2_tagname"
 ```
 
 `[jobs.aws]` holds the credentials for the AWS account, and can be added per job. If no `access_key` and `secret_key` is specified, the exporter uses the default credentials configured by `awscli`.
 
-`[jobs.filters]` contains the filter tags to be applied for fetching EC2 Instance details. The `name` of the tag needs to be in the format `tag:tag-name`.
+**(Optional)** `[jobs.filters]` contains the filter tags to be applied for fetching EC2 Instance details. The `name` of the tag needs to be in the format `tag:tag-name`.
+
+**(Optional)** `[jobs.exported_tags]` contains EC2 Instance Tags to search for (`tag`), and its corresponding tag name to be exported in the metric (`exported_tag`).
 
 ## Installation
 

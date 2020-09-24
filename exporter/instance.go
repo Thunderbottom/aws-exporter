@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/sirupsen/logrus"
+	"github.com/thunderbottom/aws-exporter/config"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -16,7 +17,7 @@ import (
 type EC2Instance struct {
 	client  *ec2.EC2
 	filters []*ec2.Filter
-	job     string
+	job     *config.Job
 	logger  *logrus.Logger
 	metrics *metrics.Set
 	region  string
@@ -55,12 +56,21 @@ func (ec2i *EC2Instance) getInstanceUsage() error {
 			if *instance.State.Name == "running" {
 				totalCoreCount = totalCoreCount + *instance.CpuOptions.CoreCount
 			}
-			instanceTypeMetric := fmt.Sprintf(`ce_instance_count{job="%s",region="%s",type="%s",status="%s"}`, ec2i.job, ec2i.region, *instance.InstanceType, *instance.State.Name)
+			labels := fmt.Sprintf(`job="%s",region="%s",type="%s",status="%s"`, ec2i.job.Name, ec2i.region, *instance.InstanceType, *instance.State.Name)
+
+			for _, tag := range ec2i.job.ExportedTags {
+				for _, instanceTag := range instance.Tags {
+					if tag.Tag == *instanceTag.Key {
+						labels = labels + fmt.Sprintf(`,%s="%s"`, tag.ExportedTag, *instanceTag.Value)
+					}
+				}
+			}
+			instanceTypeMetric := fmt.Sprintf(`ce_instance_count{%s}`, labels)
 			ec2i.metrics.GetOrCreateCounter(instanceTypeMetric).Add(1)
 		}
 	}
 
-	totalCoreMetric := fmt.Sprintf(`ce_total_core_count{job="%s",region="%s"}`, ec2i.job, ec2i.region)
+	totalCoreMetric := fmt.Sprintf(`ce_total_core_count{job="%s",region="%s"}`, ec2i.job.Name, ec2i.region)
 	ec2i.metrics.GetOrCreateGauge(totalCoreMetric, func() float64 {
 		return float64(totalCoreCount)
 	})
@@ -90,7 +100,7 @@ func (exporter *Exporter) getEC2Exporter() *EC2Instance {
 	ec2i := &EC2Instance{
 		client:  client,
 		filters: filters,
-		job:     exporter.Job.Name,
+		job:     exporter.Job,
 		logger:  exporter.Logger,
 		metrics: exporter.Metrics,
 		region:  exporter.Job.AWS.Region,

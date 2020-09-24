@@ -12,9 +12,10 @@ type Config struct {
 
 // Job is a structure that holds configuration for aws accounts
 type Job struct {
-	Name    string         `koanf:"name"`
-	AWS     awsCredentials `koanf:"aws"`
-	Filters []filters      `koanf:"filters"`
+	Name         string         `koanf:"name"`
+	AWS          awsCredentials `koanf:"aws"`
+	Filters      []filters      `koanf:"filters"`
+	ExportedTags []exportedTags `koanf:"exported_tags"`
 }
 
 type awsCredentials struct {
@@ -22,6 +23,11 @@ type awsCredentials struct {
 	SecretKey string `koanf:"secret_key"`
 	Region    string `koanf:"region"`
 	RoleARN   string `koanf:"role_arn"`
+}
+
+type exportedTags struct {
+	Tag         string `koanf:"tag"`
+	ExportedTag string `koanf:"exported_tag"`
 }
 
 type filters struct {
