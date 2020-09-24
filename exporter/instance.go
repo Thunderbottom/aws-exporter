@@ -58,7 +58,7 @@ func (ec2i *EC2Instance) getInstanceUsage() error {
 			}
 			labels := fmt.Sprintf(`job="%s",region="%s",type="%s",status="%s"`, ec2i.job.Name, ec2i.region, *instance.InstanceType, *instance.State.Name)
 
-			for _, tag := range ec2i.job.ExportedTags {
+			for _, tag := range ec2i.job.InstanceTags {
 				for _, instanceTag := range instance.Tags {
 					if tag.Tag == *instanceTag.Key {
 						labels = labels + fmt.Sprintf(`,%s="%s"`, tag.ExportedTag, *instanceTag.Value)

@@ -12,6 +12,6 @@ region     = "ap-south-1"
 [jobs.filters]
 name  = "tag:tagname"
 value = "tagvalue"
-[jobs.exported_tags]
+[jobs.instance_tags]
 tag          = "ec2-tagname"
 exported_tag = "ec2_tagname"

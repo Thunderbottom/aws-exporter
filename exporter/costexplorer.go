@@ -29,8 +29,11 @@ func (exporter *Exporter) CollectCostMetrics() error {
 	ce := exporter.getCEExporter()
 
 	var g errgroup.Group
-	g.Go(ce.getCostAndUsage)
-	g.Go(ce.getCostAndUsageByTag)
+	if len(exporter.Job.InstanceTags) > 0 {
+		g.Go(ce.getCostAndUsageByTag)
+	} else {
+		g.Go(ce.getCostAndUsage)
+	}
 	g.Go(ce.getYearlyCostForecast)
 	g.Go(ce.getReservationMetrics)
 
@@ -75,12 +78,16 @@ func (ce *CostExplorer) getCostAndUsage() error {
 }
 
 func (ce *CostExplorer) getCostAndUsageByTag() error {
-	for _, tag := range ce.job.ExportedTags {
+	for _, tag := range ce.job.InstanceTags {
 		costUsage, err := ce.client.GetCostAndUsage((&costexplorer.GetCostAndUsageInput{
 			Metrics:     []*string{aws.String("BlendedCost")},
 			TimePeriod:  getInterval(-1, 0),
 			Granularity: aws.String("DAILY"),
 			GroupBy: []*costexplorer.GroupDefinition{
+				{
+					Key:  aws.String("SERVICE"),
+					Type: aws.String("DIMENSION"),
+				},
 				{
 					Key:  aws.String(tag.Tag),
 					Type: aws.String("TAG"),
@@ -96,14 +103,14 @@ func (ce *CostExplorer) getCostAndUsageByTag() error {
 		for _, cost := range costUsage.ResultsByTime[0].Groups {
 			amount, err := strconv.ParseFloat(*cost.Metrics["BlendedCost"].Amount, 64)
 			if err != nil {
-				ce.logger.Errorf("Error occurred while parsing cost and usage data for tag %s:\n%s", *cost.Keys[0], err)
+				ce.logger.Errorf("Error occurred while parsing cost and usage data for tag %s:\n%s", *cost.Keys[1], err)
 				return err
 			}
-			tagValue := strings.Split(*cost.Keys[0], "$")[1]
+			tagValue := strings.Split(*cost.Keys[1], "$")[1]
 			if tagValue == "" {
 				tagValue = "undefined"
 			}
-			tagMetric := fmt.Sprintf(`ce_cost_by_tag{job="%s",%s="%s"}`, ce.job.Name, tag.ExportedTag, tagValue)
+			tagMetric := fmt.Sprintf(`ce_cost_by_tag{job="%s",service="%s",%s="%s"}`, ce.job.Name, *cost.Keys[0], tag.ExportedTag, tagValue)
 			ce.metrics.GetOrCreateGauge(tagMetric, func() float64 {
 				return amount
 			})

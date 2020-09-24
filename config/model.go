@@ -15,7 +15,7 @@ type Job struct {
 	Name         string         `koanf:"name"`
 	AWS          awsCredentials `koanf:"aws"`
 	Filters      []filters      `koanf:"filters"`
-	ExportedTags []exportedTags `koanf:"exported_tags"`
+	InstanceTags []instanceTags `koanf:"instance_tags"`
 }
 
 type awsCredentials struct {
@@ -25,7 +25,7 @@ type awsCredentials struct {
 	RoleARN   string `koanf:"role_arn"`
 }
 
-type exportedTags struct {
+type instanceTags struct {
 	Tag         string `koanf:"tag"`
 	ExportedTag string `koanf:"exported_tag"`
 }

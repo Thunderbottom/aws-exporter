@@ -51,7 +51,7 @@ role_arn   = ""
 [jobs.filters]
 name  = ""
 value = ""
-[jobs.exported_tags]
+[jobs.instance_tags]
 tag          = "ec2-tagname"
 exported_tag = "ec2_tagname"
 ```
@@ -60,7 +60,7 @@ exported_tag = "ec2_tagname"
 
 **(Optional)** `[jobs.filters]` contains the filter tags to be applied for fetching EC2 Instance details. The `name` of the tag needs to be in the format `tag:tag-name`.
 
-**(Optional)** `[jobs.exported_tags]` contains EC2 Instance Tags to search for (`tag`), and its corresponding tag name to be exported in the metric (`exported_tag`).
+**(Optional)** `[jobs.instance_tags]` contains EC2 Instance Tags to search for (`tag`), and its corresponding tag name to be exported in the metric (`exported_tag`).
 
 ## Installation
 
