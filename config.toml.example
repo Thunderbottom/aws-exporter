@@ -4,7 +4,8 @@ read_timeout  = 8000
 write_timeout = 8000
 
 [[jobs]]
-name = "job"
+name        = "job"
+granularity = "daily"
 [jobs.aws]
 access_key = ""
 secret_key = ""

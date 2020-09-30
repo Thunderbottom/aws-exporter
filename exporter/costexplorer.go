@@ -18,10 +18,11 @@ import (
 // CostExplorer is a structure representing the functions required
 // to fetch data from AWS Cost Explorer
 type CostExplorer struct {
-	client  *costexplorer.CostExplorer
-	job     *config.Job
-	logger  *logrus.Logger
-	metrics *metrics.Set
+	client     *costexplorer.CostExplorer
+	job        *config.Job
+	logger     *logrus.Logger
+	metrics    *metrics.Set
+	timeperiod int
 }
 
 // CollectCostMetrics scrapes the AWS Cost Explorer API and writes the metric data to Prometheus
@@ -47,8 +48,8 @@ func (exporter *Exporter) CollectCostMetrics() error {
 func (ce *CostExplorer) getCostAndUsage() error {
 	costUsage, err := ce.client.GetCostAndUsage((&costexplorer.GetCostAndUsageInput{
 		Metrics:     []*string{aws.String("BlendedCost")},
-		TimePeriod:  getInterval(-1, 0),
-		Granularity: aws.String("DAILY"),
+		TimePeriod:  getInterval(-ce.timeperiod, 0),
+		Granularity: aws.String(ce.job.Granularity),
 		GroupBy: []*costexplorer.GroupDefinition{
 			{
 				Key:  aws.String("SERVICE"),
@@ -81,8 +82,8 @@ func (ce *CostExplorer) getCostAndUsageByTag() error {
 	for _, tag := range ce.job.InstanceTags {
 		costUsage, err := ce.client.GetCostAndUsage((&costexplorer.GetCostAndUsageInput{
 			Metrics:     []*string{aws.String("BlendedCost")},
-			TimePeriod:  getInterval(-1, 0),
-			Granularity: aws.String("DAILY"),
+			TimePeriod:  getInterval(-ce.timeperiod, 0),
+			Granularity: aws.String(ce.job.Granularity),
 			GroupBy: []*costexplorer.GroupDefinition{
 				{
 					Key:  aws.String("SERVICE"),
@@ -256,10 +257,28 @@ func (exporter *Exporter) getCEExporter() *CostExplorer {
 	}
 
 	ce := &CostExplorer{
-		client:  client,
-		job:     exporter.Job,
-		logger:  exporter.Logger,
-		metrics: exporter.Metrics,
+		client:     client,
+		job:        exporter.Job,
+		logger:     exporter.Logger,
+		metrics:    exporter.Metrics,
+	}
+
+	switch exporter.Job.Granularity {
+	case "hourly":
+		ce.job.Granularity = costexplorer.GranularityHourly
+		ce.timeperiod = 1
+	case "daily":
+		ce.job.Granularity = costexplorer.GranularityDaily
+		ce.timeperiod = 1
+	case "weekly":
+		ce.job.Granularity = costexplorer.GranularityDaily
+		ce.timeperiod = 7
+	case "monthly":
+		ce.job.Granularity = costexplorer.GranularityMonthly
+		ce.timeperiod = 30
+	default:
+		exporter.Job.Granularity = costexplorer.GranularityDaily
+		ce.timeperiod = 1
 	}
 
 	return ce

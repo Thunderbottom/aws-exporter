@@ -44,7 +44,8 @@ For the exporter to work, your IAM User/Role needs to have the following IAM Per
 
 ```toml
 [[jobs]]
-name = ""
+name        = ""
+granularity = ""
 [jobs.aws]
 access_key = ""
 secret_key = ""
@@ -59,6 +60,8 @@ exported_tag = "ec2_tagname"
 ```
 
 `[jobs.aws]` holds the credentials for the AWS account, and can be added per job. If no `access_key` and `secret_key` is specified, the exporter uses the default credentials configured by `awscli`.
+
+**(Optional)** `[[jobs]].granularity` is the exported cost granularity for EC2 instances. Can be set to `daily`, `hourly`, `weekly`, `monthly`. Defaults to `daily`.
 
 **(Optional)** `[jobs.filters]` contains the filter tags to be applied for fetching EC2 Instance details. The `name` of the tag needs to be in the format `tag:tag-name`.
 

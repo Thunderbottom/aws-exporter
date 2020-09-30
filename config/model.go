@@ -15,6 +15,7 @@ type Job struct {
 	Name         string         `koanf:"name"`
 	AWS          awsCredentials `koanf:"aws"`
 	Filters      []filters      `koanf:"filters"`
+	Granularity  string         `koanf:"granularity"`
 	InstanceTags []instanceTags `koanf:"instance_tags"`
 }
 
