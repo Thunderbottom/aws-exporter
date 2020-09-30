@@ -241,6 +241,11 @@ func getInterval(start int, end int) *costexplorer.DateInterval {
 	now := time.Now()
 	startDate := now.AddDate(0, 0, start)
 	endDate := now.AddDate(0, 0, end)
+
+	if startDate == endDate {
+		startDate = startDate.AddDate(0, 0, -1)
+	}
+
 	dateInterval.SetStart(startDate.Format("2006-01-02"))
 	dateInterval.SetEnd(endDate.Format("2006-01-02"))
 
@@ -275,7 +280,7 @@ func (exporter *Exporter) getCEExporter() *CostExplorer {
 		ce.timeperiod = 7
 	case "monthly":
 		ce.job.Granularity = costexplorer.GranularityMonthly
-		ce.timeperiod = time.Now().Day()
+		ce.timeperiod = time.Now().Day() - 1
 	default:
 		exporter.Job.Granularity = costexplorer.GranularityDaily
 		ce.timeperiod = 1
