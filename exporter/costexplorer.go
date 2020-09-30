@@ -275,7 +275,7 @@ func (exporter *Exporter) getCEExporter() *CostExplorer {
 		ce.timeperiod = 7
 	case "monthly":
 		ce.job.Granularity = costexplorer.GranularityMonthly
-		ce.timeperiod = 30
+		ce.timeperiod = time.Now().Day()
 	default:
 		exporter.Job.Granularity = costexplorer.GranularityDaily
 		ce.timeperiod = 1
